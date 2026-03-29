@@ -82,24 +82,25 @@ def call(Map config = [:]) {
 
             // ✅ NEW: Docker Push
             stage('Docker Push') {
-                steps {
-                    script {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'docker-cred',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASS'
-                        )]) {
+    steps {
+        script {
+            withCredentials([usernamePassword(
+                credentialsId: 'docker-creds',
+                usernameVariable: 'DOCKER_USER',
+                passwordVariable: 'DOCKER_PASS'
+            )]) {
 
-                            sh """
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
-                            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
-                            docker push ${IMAGE_NAME}:latest
-                            """
-                        }
-                    }
-                }
+                def imageName = "${DOCKER_USER}/${APP_NAME}"
+
+                sh '''
+                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                docker tag $IMAGE_NAME:$IMAGE_TAG $DOCKER_USER/$APP_NAME:$IMAGE_TAG
+                docker push $DOCKER_USER/$APP_NAME:$IMAGE_TAG
+                '''
             }
+        }
+    }
+}
 
             stage('Deploy') {
                 steps {
