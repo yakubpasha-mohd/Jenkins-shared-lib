@@ -18,7 +18,7 @@ def call(Map config = [:]) {
 
             stage('Checkout') {
                 steps {
-                    git url: config.repoUrl, branch: 'main'
+                    git url: config.repoUrl, branch: 'master'
                 }
             }
 
