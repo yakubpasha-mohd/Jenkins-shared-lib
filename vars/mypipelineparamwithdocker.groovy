@@ -1,0 +1,133 @@
+def call(Map config = [:]) {
+
+    def appName = config.appName ?: "java-app"
+    def dockerRepo = config.dockerRepo ?: "your-dockerhub-username/${appName}"
+
+    pipeline {
+        agent any
+
+        tools {
+            maven 'Maven3'
+            jdk 'openjdk-17'
+        }
+
+        parameters {
+            string(name: 'REPO_URL',
+                   defaultValue: 'https://github.com/yakubpasha-mohd/simple-java-maven-app.git',
+                   description: 'Git Repo URL')
+
+            string(name: 'BRANCH',
+                   defaultValue: 'master',
+                   description: 'Git Branch')
+
+            choice(name: 'ENV',
+                   choices: ['dev','qa','prod'],
+                   description: 'Deployment Environment')
+        }
+
+        environment {
+            APP_NAME   = "${appName}"
+            DEPLOY_ENV = "${params.ENV}"
+            IMAGE_NAME = "${dockerRepo}"
+            IMAGE_TAG  = "${BUILD_NUMBER}"
+        }
+
+        stages {
+
+            stage('Validate Input') {
+                steps {
+                    script {
+                        if (!params.REPO_URL?.trim()) {
+                            error "❌ REPO_URL cannot be empty"
+                        }
+                    }
+                }
+            }
+
+            stage('Checkout') {
+                steps {
+                    echo "Checking out ${params.REPO_URL} (${params.BRANCH})"
+                    git url: params.REPO_URL, branch: params.BRANCH
+                }
+            }
+
+            stage('Build') {
+                steps {
+                    sh 'mvn clean package'
+                }
+            }
+
+            stage('Test') {
+                steps {
+                    sh 'mvn test'
+                }
+            }
+
+            stage('Archive Artifacts') {
+                steps {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
+            }
+
+            // ✅ NEW: Docker Build
+            stage('Docker Build') {
+                steps {
+                    script {
+                        echo "Building Docker image ${IMAGE_NAME}:${IMAGE_TAG}"
+                        sh """
+                        docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                        """
+                    }
+                }
+            }
+
+            // ✅ NEW: Docker Push
+            stage('Docker Push') {
+                steps {
+                    script {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'docker-creds',
+                            usernameVariable: 'DOCKER_USER',
+                            passwordVariable: 'DOCKER_PASS'
+                        )]) {
+
+                            sh """
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                            docker push ${IMAGE_NAME}:latest
+                            """
+                        }
+                    }
+                }
+            }
+
+            stage('Deploy') {
+                steps {
+                    echo "Deploying ${APP_NAME} to ${DEPLOY_ENV}"
+
+                    script {
+                        if (params.ENV == 'dev') {
+                            echo "Deploying to DEV environment"
+                        } else if (params.ENV == 'qa') {
+                            echo "Deploying to QA environment"
+                        } else if (params.ENV == 'prod') {
+                            echo "🚀 Deploying to PROD environment"
+                        } else {
+                            error "Invalid environment: ${params.ENV}"
+                        }
+                    }
+                }
+            }
+        }
+
+        post {
+            success {
+                echo "Pipeline Success ✅ (${params.ENV})"
+            }
+            failure {
+                echo "Pipeline Failed ❌ (${params.ENV})"
+            }
+        }
+    }
+}
