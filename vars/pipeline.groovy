@@ -5,7 +5,7 @@ def call(Map config = [:]) {
 
         tools {
             maven 'Maven3'
-            jdk 'JDK11'
+            jdk 'openjdk-17'
         }
 
         environment {
