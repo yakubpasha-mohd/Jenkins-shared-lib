@@ -1,5 +1,7 @@
 def call(Map config = [:]) {
 
+    def appName = config.appName ?: "java-app"
+
     pipeline {
         agent any
 
@@ -9,7 +11,7 @@ def call(Map config = [:]) {
         }
 
         environment {
-            APP_NAME = config.appName ?: "java-app"
+            APP_NAME = "${appName}"
         }
 
         stages {
