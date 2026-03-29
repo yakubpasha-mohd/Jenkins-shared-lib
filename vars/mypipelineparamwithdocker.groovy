@@ -1,8 +1,7 @@
 def call(Map config = [:]) {
 
     def appName = config.appName ?: "java-app"
-    def dockerRepo = config.dockerRepo ?: "myptech08/${appName}"
-
+    def dockerRepo = config.dockerRepo ?: "${DOCKER_USER}/${appName}"
     pipeline {
         agent any
 
