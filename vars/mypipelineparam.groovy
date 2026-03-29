@@ -7,7 +7,7 @@ def call(Map config = [:]) {
 
         parameters {
             string(name: 'REPO_URL', defaultValue: '', description: 'Git Repo URL')
-            string(name: 'BRANCH', defaultValue: 'main', description: 'Git Branch')
+            string(name: 'BRANCH', defaultValue: 'master', description: 'Git Branch')
             choice(name: 'ENV', choices: ['dev', 'qa', 'prod'], description: 'Environment')
         }
 
