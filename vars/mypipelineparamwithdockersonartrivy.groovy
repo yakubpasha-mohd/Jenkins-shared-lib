@@ -66,20 +66,23 @@ def call(Map config = [:]) {
                 }
             }
 
-            // ✅ NEW: SonarQube Analysis
-            stage('SonarQube Analysis') {
-                steps {
-                    script {
-                        withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                            sh """
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=${APP_NAME} \
-                            -Dsonar.projectName=${APP_NAME}
-                            """
-                        }
-                    }
-                }
+          stage('SonarQube Analysis') {
+    steps {
+        script {
+            def scannerHome = tool 'sonar-scanner'
+
+            withSonarQubeEnv('SonarQubeServer') {
+                sh """
+                ${scannerHome}/bin/sonar-scanner \
+                -Dsonar.projectKey=${APP_NAME} \
+                -Dsonar.projectName=${APP_NAME} \
+                -Dsonar.sources=. \
+                -Dsonar.java.binaries=target/classes
+                """
             }
+        }
+    }
+}
 
             // ✅ OPTIONAL: Quality Gate (recommended)
             stage('Quality Gate') {
