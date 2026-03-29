@@ -5,20 +5,49 @@ def call(Map config = [:]) {
     pipeline {
         agent any
 
+        tools {
+            maven 'Maven3'
+            jdk 'openjdk-17'
+        }
+
         parameters {
-            string(name: 'REPO_URL', defaultValue: '', description: 'Git Repo URL')
-            string(name: 'BRANCH', defaultValue: 'master', description: 'Git Branch')
-            choice(name: 'ENV', choices: ['dev', 'qa', 'prod'], description: 'Environment')
+            string(
+                name: 'REPO_URL',
+                defaultValue: 'https://github.com/yakubpasha-mohd/simple-java-maven-app.git',
+                description: 'Git Repo URL'
+            )
+            string(
+                name: 'BRANCH',
+                defaultValue: 'master',
+                description: 'Git Branch'
+            )
+            choice(
+                name: 'ENV',
+                choices: ['dev','qa','prod'],
+                description: 'Deployment Environment'
+            )
         }
 
         environment {
-            APP_NAME = "${appName}"
+            APP_NAME   = "${appName}"
+            DEPLOY_ENV = "${params.ENV}"
         }
 
         stages {
 
+            stage('Validate Input') {
+                steps {
+                    script {
+                        if (!params.REPO_URL?.trim()) {
+                            error "❌ REPO_URL cannot be empty"
+                        }
+                    }
+                }
+            }
+
             stage('Checkout') {
                 steps {
+                    echo "Checking out ${params.REPO_URL} (${params.BRANCH})"
                     git url: params.REPO_URL, branch: params.BRANCH
                 }
             }
@@ -29,10 +58,46 @@ def call(Map config = [:]) {
                 }
             }
 
+            stage('Test') {
+                steps {
+                    sh 'mvn test'
+                }
+            }
+
+            // ✅ ADDED: Archive Artifacts
+            stage('Archive Artifacts') {
+                steps {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
+            }
+
+            // ✅ UPDATED: Deploy Stage with ENV logic
             stage('Deploy') {
                 steps {
-                    echo "Deploying ${APP_NAME} to ${params.ENV}"
+                    echo "Deploying ${APP_NAME} to ${DEPLOY_ENV}"
+
+                    script {
+                        if (params.ENV == 'dev') {
+                            echo "Deploying to DEV environment"
+                        } else if (params.ENV == 'qa') {
+                            echo "Deploying to QA environment"
+                        } else if (params.ENV == 'prod') {
+                            echo "🚀 Deploying to PROD environment"
+                        } else {
+                            error "Invalid environment: ${params.ENV}"
+                        }
+                    }
                 }
+            }
+        }
+
+        // ✅ ADDED: Post actions
+        post {
+            success {
+                echo "Pipeline Success ✅ (${params.ENV})"
+            }
+            failure {
+                echo "Pipeline Failed ❌ (${params.ENV})"
             }
         }
     }
