@@ -52,13 +52,13 @@ def call(Map config = [:]) {
 
             stage('Build') {
                 steps {
-                    sh './mvnw clean package'
+                    sh 'mvn clean package'
                 }
             }
 
             stage('Test') {
                 steps {
-                    sh './mvn test'
+                    sh 'mvn test'
                 }
             }
 
