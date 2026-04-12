@@ -57,14 +57,19 @@ def call(Map config = [:]) {
     }
 }
             stage('Build') {
-                steps {
-                    sh 'mvn clean package'
-                }
+               steps {
+        script {
+            def mvnHome = tool name: 'maven-3.9', type: 'maven'
+            sh """
+                ${mvnHome}/bin/mvn -version
+                ${mvnHome}/bin/mvn clean package
+            """
+        }
             }
 
             stage('Test') {
                 steps {
-                    sh 'mvn test'
+                    sh '${mvnHome}/bin/mvn test'
                 }
             }
 
