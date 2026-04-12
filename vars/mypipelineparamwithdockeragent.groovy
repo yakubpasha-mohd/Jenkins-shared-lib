@@ -49,7 +49,13 @@ def call(Map config = [:]) {
                     git url: params.REPO_URL, branch: params.BRANCH
                 }
             }
-
+            stage('Debug Agent') {
+    steps {
+        sh 'hostname'
+        sh 'java -version'
+        sh 'mvn -version || echo "Maven not found"'
+    }
+}
             stage('Build') {
                 steps {
                     sh 'mvn clean package'
