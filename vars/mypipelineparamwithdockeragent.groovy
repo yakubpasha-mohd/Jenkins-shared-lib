@@ -66,6 +66,7 @@ def call(Map config = [:]) {
             """
         }
             }
+            }
 
             stage('Test') {
                 steps {
