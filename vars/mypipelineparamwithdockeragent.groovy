@@ -29,6 +29,7 @@ def call(Map config = [:]) {
             DEPLOY_ENV = "${params.ENV}"
             IMAGE_NAME = "${dockerRepo}"
             IMAGE_TAG  = "${BUILD_NUMBER}"
+            MVN_HOME = tool(name: 'maven-3.9', type: 'maven')
         }
 
         stages {
@@ -58,19 +59,23 @@ def call(Map config = [:]) {
 }
             stage('Build') {
                steps {
-        script {
+                   sh "${MVN_HOME}/bin/mvn clean package"
+               }
+       /*
+                   script {
             def mvnHome = tool name: 'maven-3.9', type: 'maven'
             sh """
                 ${mvnHome}/bin/mvn -version
                 ${mvnHome}/bin/mvn clean package
             """
-        }
+        } */
             }
             }
 
             stage('Test') {
                 steps {
-                    sh '${mvnHome}/bin/mvn test'
+                //    sh '${mvnHome}/bin/mvn test'
+                      sh "${MVN_HOME}/bin/mvn test"
                 }
             }
 
