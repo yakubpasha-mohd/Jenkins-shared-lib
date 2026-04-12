@@ -13,16 +13,14 @@ def call(Map config = [:]) {
         environment {
             APP_NAME = "${appName}"
         }
+        
         stages {
-        stage('Verify') {
-            steps {
-                sh 'echo $JAVA_HOME'
-                sh 'mvn -version'
+            stage('Verify') {
+                steps {
+                    sh 'echo $JAVA_HOME'
+                    sh 'mvn -version'
             }
         }
-    }
-        stages {
-
             stage('Checkout') {
                 steps {
                     git url: config.repoUrl, branch: 'master'
