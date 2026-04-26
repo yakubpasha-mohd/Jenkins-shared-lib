@@ -84,11 +84,11 @@ def call(Map config = [:]) {
 
             withSonarQubeEnv('sonar') {
                 sh """
-                ${scannerHome}/bin/sonar-scanner \
-                -Dsonar.projectKey=${APP_NAME} \
-                -Dsonar.projectName=${APP_NAME} \
-                -Dsonar.sources=. \
-                -Dsonar.java.binaries=target/classes
+                    ${scannerHome}/bin/sonar-scanner \
+                    -Dsonar.projectKey=${APP_NAME} \
+                    -Dsonar.projectName=${APP_NAME} \
+                    -Dsonar.sources=. \
+                    -Dsonar.java.binaries=target/classes
                 """
             }
         }
