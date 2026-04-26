@@ -7,7 +7,7 @@ def call(Map config = [:]) {
         agent { label 'jenkins-slave' }
 
         tools {
-            maven 'maven-3.9'
+            maven 'maven-3.9.6'
             jdk 'openjdk-17'
         }
 
