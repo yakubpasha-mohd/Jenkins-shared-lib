@@ -67,13 +67,13 @@ def call(Map config = [:]) {
 
             stage('Build') {
                 steps {
-                    sh '${MVN_HOME}/bin/mvn clean package'
+                    sh '/opt/maven/bin/mvn clean package'
                 }
             }
 
             stage('Test') {
                 steps {
-                    sh '${MVN_HOME}/bin/mvn test'
+                    sh '/opt/maven/bin/mvn clean package'
                 }
             }
 
