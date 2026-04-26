@@ -131,8 +131,9 @@ def call(Map config = [:]) {
           aquasec/trivy:latest image \
           --format table \
           --output /workspace/trivy-report.txt \
-          ${DOCKER_USER}/${APP_NAME}:${BUILD_NUMBER}
+          ${IMAGE_NAME}:${IMAGE_TAG}
         """
+        archiveArtifacts artifacts: 'trivy-report.txt'
     }
 }
 
