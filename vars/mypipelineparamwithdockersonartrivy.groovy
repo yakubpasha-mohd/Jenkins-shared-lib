@@ -36,7 +36,18 @@ def call(Map config = [:]) {
         }
 
         stages {
-
+            stage('Debug Maven') {
+    steps {
+        sh '''
+            echo "PATH=$PATH"
+            which mvn || true
+            type -a mvn || true
+            mvn --version || true
+            ./mvnw --version || true
+            env | grep -i maven || true
+        '''
+    }
+}
             stage('Validate Input') {
                 steps {
                     script {
