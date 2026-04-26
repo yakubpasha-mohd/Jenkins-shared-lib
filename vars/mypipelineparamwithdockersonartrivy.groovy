@@ -4,7 +4,7 @@ def call(Map config = [:]) {
     def dockerRepo = config.dockerRepo ?: "${DOCKER_USER}/${appName}"
 
     pipeline {
-        agent { label 'jenkins-slave' }
+        agent { any }
 
         tools {
             maven 'maven-3.9'
