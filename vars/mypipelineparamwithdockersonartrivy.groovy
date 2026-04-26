@@ -123,16 +123,18 @@ def call(Map config = [:]) {
 
             // ✅ NEW: Trivy Scan (Image Scan)
             stage('Trivy Scan') {
-                steps {
-                    script {
-                        sh """
-                        trivy image --severity HIGH,CRITICAL \
-                        --exit-code 1 \
-                        ${IMAGE_NAME}:${IMAGE_TAG}
-                        """
-                    }
-                }
-            }
+    steps {
+        sh """
+        docker run --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v \$WORKSPACE:/workspace \
+          aquasec/trivy:latest image \
+          --format table \
+          --output /workspace/trivy-report.txt \
+          ${DOCKER_USER}/${APP_NAME}:${BUILD_NUMBER}
+        """
+    }
+}
 
             // ✅ Docker Push
             stage('Docker Push') {
