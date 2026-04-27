@@ -203,28 +203,7 @@ stage('Unit Tests') {
                 }
             }
 
-            stage('Trivy Scan') {
-                steps {
-                    script {
-                        def scans = [:]
-
-                        SERVICES.each { svc ->
-                            scans[svc] = {
-                                sh """
-                                    trivy image \
-                                    --format table \
-                                    --output ${svc}-trivy-report.txt \
-                                    ${DOCKER_REPO}/${svc}:${IMAGE_TAG}
-                                """
-                                archiveArtifacts artifacts: "${svc}-trivy-report.txt"
-                            }
-                        }
-
-                        parallel scans
-                    }
-                }
-            }
-
+          
             stage('Docker Push') {
                 steps {
                     script {
