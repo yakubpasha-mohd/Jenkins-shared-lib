@@ -77,94 +77,105 @@ drug-catalog-service''',
                 }
             }
 
-            stage('Build Services') {
-                steps {
-                    script {
-                        def builds = [:]
+           stage('Build Services') {
+    steps {
+        script {
+            def builds = [:]
 
-                        SERVICES.each { svc ->
-                            builds[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                        sh '''
-                                            echo "Building service: $(pwd)"
+            SERVICES.each { svc ->
+                builds[svc] = {
+                    dir("${SERVICES_DIR}/${svc}") {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh '''
+                                echo "Building service: $(pwd)"
 
-                                            if [ -f pom.xml ]; then
-                                                echo "Java/Maven project detected"
-                                                rm -rf target
-                                                mkdir -p target/classes
-                                                /opt/maven/bin/mvn clean package -DskipTests -U
+                                if [ -f pom.xml ]; then
+                                    echo "Java/Maven project detected"
+                                    rm -rf target
+                                    mkdir -p target/classes
+                                    /opt/maven/bin/mvn clean package -DskipTests -U
 
-                                           elif [ -f package.json ]; then
-                                                echo "Node.js project detected"
-                                                if command -v npm >/dev/null 2>&1; then
-                                                    npm ci
-                                                    npm run build
-                                                else
-                                                echo "npm not installed, skipping build"
-                                                fi
-                                        '''
-                                    }
-                                }
-                            }
+                                elif [ -f package.json ]; then
+                                    echo "Node.js project detected"
+
+                                    if command -v npm >/dev/null 2>&1; then
+                                        npm ci
+                                        npm run build
+                                    else
+                                        echo "npm not installed, skipping build"
+                                    fi
+
+                                else
+                                    echo "Unknown project type. Skipping build."
+                                fi
+                            '''
                         }
-
-                        parallel builds
                     }
                 }
             }
 
-            stage('Unit Tests') {
-                steps {
-                    script {
-                        def tests = [:]
+            parallel builds
+        }
+    }
+}
 
-                        SERVICES.each { svc ->
-                            tests[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                                        sh '''
-                                            echo "Running tests in: $(pwd)"
+stage('Unit Tests') {
+    steps {
+        script {
+            def tests = [:]
 
-                                            if [ -f pom.xml ]; then
-                                                echo "Java/Maven project detected"
+            SERVICES.each { svc ->
+                tests[svc] = {
+                    dir("${SERVICES_DIR}/${svc}") {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh '''
+                                echo "Running tests in: $(pwd)"
 
-                                                if grep -q "com.h2database" pom.xml; then
-                                                    echo "H2 dependency found, running tests"
-                                                    /opt/maven/bin/mvn test -U
-                                                else
-                                                    echo "H2 dependency missing, skipping Spring Boot tests temporarily"
-                                                    /opt/maven/bin/mvn test -DskipTests
-                                                fi
-                                                elif [ -f package.json ]; then
-                                                echo "Node.js project detected"
-                                                if command -v npm >/dev/null 2>&1; then
-                                                    npm ci
-                                                    npm test -- --watchAll=false || true
-                                                    else
-                                                        echo "npm not installed, skipping tests"
-                                                fi                                           
-                                        '''
-                                    }
+                                if [ -f pom.xml ]; then
+                                    echo "Java/Maven project detected"
 
-                                    script {
-                                        if (fileExists('target/surefire-reports')) {
-                                            junit(
-                                                allowEmptyResults: true,
-                                                testResults: 'target/surefire-reports/*.xml'
-                                            )
-                                        } else {
-                                            echo "No JUnit reports found for ${svc}"
-                                        }
-                                    }
-                                }
-                            }
+                                    if grep -q "com.h2database" pom.xml; then
+                                        echo "H2 dependency found, running tests"
+                                        /opt/maven/bin/mvn test -U
+                                    else
+                                        echo "H2 dependency missing, skipping Spring Boot tests temporarily"
+                                        /opt/maven/bin/mvn test -DskipTests
+                                    fi
+
+                                elif [ -f package.json ]; then
+                                    echo "Node.js project detected"
+
+                                    if command -v npm >/dev/null 2>&1; then
+                                        npm ci
+                                        npm test -- --watchAll=false || true
+                                    else
+                                        echo "npm not installed, skipping tests"
+                                    fi
+
+                                else
+                                    echo "Unknown project type. Skipping tests."
+                                fi
+                            '''
                         }
 
-                        parallel tests
+                        script {
+                            if (fileExists('target/surefire-reports')) {
+                                junit(
+                                    allowEmptyResults: true,
+                                    testResults: 'target/surefire-reports/*.xml'
+                                )
+                            } else {
+                                echo "No JUnit reports found for ${svc}"
+                            }
+                        }
                     }
                 }
             }
+
+            parallel tests
+        }
+    }
+}
 
             stage('Archive Artifacts') {
                 steps {
