@@ -79,9 +79,22 @@ def call(Map config = [:]) {
                 builds[svc] = {
                     dir("${SERVICES_DIR}/${svc}") {
                         sh '''
-                        rm -rf target
-                        mkdir -p target/classes
-                        /opt/maven/bin/mvn package -DskipTests -U
+                            echo "Building service: ${PWD}"
+
+                            # Verify application.yml exists
+                            if [ -f src/main/resources/application.yml ]; then
+                                echo "application.yml found"
+                                ls -l src/main/resources/application.yml
+                            fi
+
+                            # Clean manually
+                            rm -rf target
+
+                            # Create required folders
+                            mkdir -p target/classes
+
+                            # Build
+                            /opt/maven/bin/mvn clean package -DskipTests -U
                         '''
                     }
                 }
@@ -92,7 +105,7 @@ def call(Map config = [:]) {
     }
 }
 
-            stage('Unit Tests') {
+           stage('Unit Tests') {
     steps {
         script {
             def tests = [:]
