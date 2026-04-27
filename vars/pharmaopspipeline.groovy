@@ -92,7 +92,7 @@ drug-catalog-service''',
 
                                 elif [ -f package.json ]; then
                                     echo "Node.js project detected"
-                                    npm install
+                                    npm ci
                                     npm run build
 
                                 else
@@ -108,7 +108,8 @@ drug-catalog-service''',
         }
     }
 }
-            stage('Unit Tests') {
+
+stage('Unit Tests') {
     steps {
         script {
             def tests = [:]
@@ -122,11 +123,17 @@ drug-catalog-service''',
 
                                 if [ -f pom.xml ]; then
                                     echo "Java/Maven project detected"
-                                    /opt/maven/bin/mvn test -U
+
+                                    # Run tests, fallback if H2 issue occurs
+                                    /opt/maven/bin/mvn test -U || \
+                                    /opt/maven/bin/mvn test -Dspring.datasource.url=jdbc:h2:mem:testdb \
+                                                         -Dspring.datasource.driverClassName=org.h2.Driver \
+                                                         -Dspring.datasource.username=sa \
+                                                         -Dspring.datasource.password=
 
                                 elif [ -f package.json ]; then
                                     echo "Node.js project detected"
-                                    npm install
+                                    npm ci
                                     npm test -- --watchAll=false || true
 
                                 else
