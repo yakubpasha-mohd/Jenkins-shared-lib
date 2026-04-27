@@ -18,17 +18,18 @@ def call(Map config = [:]) {
                    description: 'Git Branch')
 
             choice(
-                name: 'SERVICE_NAME',
-                choices: [
-                    'all',
-                    'api-gateway',
-                    'auth-service',
-                    'user-service',
-                    'product-service',
-                    'order-service'
-                ],
-                description: 'Select service to build/deploy'
-            )
+    name: 'SERVICE_NAME',
+    choices: '''all
+api-gateway
+auth-service
+user-service
+product-service
+order-service
+pharma-ui
+notification-service
+drug-catalog-service''',
+    description: 'Select service to build/deploy'
+)
 
             choice(name: 'ENV',
                    choices: ['dev', 'qa', 'prod'],
