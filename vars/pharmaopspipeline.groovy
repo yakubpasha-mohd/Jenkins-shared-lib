@@ -78,12 +78,12 @@ def call(Map config = [:]) {
             for (svc in SERVICES) {
                 builds[svc] = {
                     dir("${SERVICES_DIR}/${svc}") {
-    sh '''
-    rm -rf target
-    mkdir -p target/classes
-    /opt/maven/bin/mvn clean package -DskipTests -U
-    '''
-}
+                        sh '''
+                        rm -rf target
+                        mkdir -p target/classes
+                        /opt/maven/bin/mvn package -DskipTests -U
+                        '''
+                    }
                 }
             }
 
