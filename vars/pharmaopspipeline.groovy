@@ -62,10 +62,11 @@ def call(Map config = [:]) {
                     find ${SERVICES_DIR} -maxdepth 1 -mindepth 1 -type d | xargs -n 1 basename
                     """,
                     returnStdout: true
-                ).trim().split('\n').unique()
+                ).trim().split('\n').toList().unique()
             }
 
             echo "Services to process: ${SERVICES.join(', ')}"
+            echo "Total services count: ${SERVICES.size()}"
         }
     }
 }
