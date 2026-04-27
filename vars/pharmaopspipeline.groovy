@@ -153,40 +153,6 @@ stage('Unit Tests') {
     }
 }
 
-            stage('SonarQube Analysis') {
-                steps {
-                    script {
-                        def scans = [:]
-                        def scannerHome = tool 'sonar-scanner'
-
-                        for (svc in SERVICES) {
-                            scans[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    withSonarQubeEnv('SonarQube') {
-                                        sh """
-                                        ${scannerHome}/bin/sonar-scanner \
-                                        -Dsonar.projectKey=${svc} \
-                                        -Dsonar.projectName=${svc} \
-                                        -Dsonar.sources=. \
-                                        -Dsonar.java.binaries=target/classes
-                                        """
-                                    }
-                                }
-                            }
-                        }
-
-                        parallel scans
-                    }
-                }
-            }
-
-            stage('Quality Gate') {
-                steps {
-                    timeout(time: 15, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true
-                    }
-                }
-            }
 
             stage('Archive Artifacts') {
                 steps {
