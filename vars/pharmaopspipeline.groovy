@@ -2,7 +2,7 @@ def call(Map config = [:]) {
 
     def appName    = config.appName ?: "pharmaops"
     def dockerRepo = config.dockerRepo ?: "${DOCKER_USER}/${appName}"
-    def repoUrl    = config.repoUrl ?: "https://github.com/your-org/pharmaops-v1.git"
+    def repoUrl    = config.repoUrl ?: "https://github.com/yakubpasha-mohd/pharmaops.git"
 
     pipeline {
      agent { label 'jenkins-slave' }
