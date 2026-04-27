@@ -70,7 +70,7 @@ def call(Map config = [:]) {
                 }
             }
 
-            stage('Build Services') {
+           stage('Build Services') {
     steps {
         script {
             def builds = [:]
@@ -79,22 +79,25 @@ def call(Map config = [:]) {
                 builds[svc] = {
                     dir("${SERVICES_DIR}/${svc}") {
                         sh '''
-                            echo "Building service: ${PWD}"
+                            echo "Building service: $(pwd)"
 
-                            # Verify application.yml exists
+                            # Check resource file
                             if [ -f src/main/resources/application.yml ]; then
                                 echo "application.yml found"
                                 ls -l src/main/resources/application.yml
                             fi
 
-                            # Clean manually
+                            # Full cleanup
                             rm -rf target
 
-                            # Create required folders
+                            # Recreate folders
                             mkdir -p target/classes
 
-                            # Build
+                            # Build without tests
                             /opt/maven/bin/mvn clean package -DskipTests -U
+
+                            # Verify generated jar
+                            ls -lh target/*.jar || true
                         '''
                     }
                 }
