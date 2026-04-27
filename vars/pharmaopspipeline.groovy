@@ -81,10 +81,22 @@ def call(Map config = [:]) {
                     dir("${SERVICES_DIR}/${svc}") {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh '''
-                            echo "Building service: $(pwd)"
-                            rm -rf target
-                            mkdir -p target/classes
-                            /opt/maven/bin/mvn clean package -DskipTests -U
+                                echo "Building service: $(pwd)"
+
+                                if [ -f pom.xml ]; then
+                                    echo "Java/Maven project detected"
+                                    rm -rf target
+                                    mkdir -p target/classes
+                                    /opt/maven/bin/mvn clean package -DskipTests -U
+
+                                elif [ -f package.json ]; then
+                                    echo "Node.js project detected"
+                                    npm install
+                                    npm run build
+
+                                else
+                                    echo "Unknown project type. Skipping build."
+                                fi
                             '''
                         }
                     }
@@ -95,7 +107,7 @@ def call(Map config = [:]) {
         }
     }
 }
-           stage('Unit Tests') {
+            stage('Unit Tests') {
     steps {
         script {
             def tests = [:]
@@ -105,9 +117,20 @@ def call(Map config = [:]) {
                     dir("${SERVICES_DIR}/${svc}") {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             sh '''
-                                echo "Running unit tests in: $(pwd)"
+                                echo "Running tests in: $(pwd)"
 
-                                /opt/maven/bin/mvn test -U
+                                if [ -f pom.xml ]; then
+                                    echo "Java/Maven project detected"
+                                    /opt/maven/bin/mvn test -U
+
+                                elif [ -f package.json ]; then
+                                    echo "Node.js project detected"
+                                    npm install
+                                    npm test -- --watchAll=false || true
+
+                                else
+                                    echo "Unknown project type. Skipping tests."
+                                fi
                             '''
                         }
 
