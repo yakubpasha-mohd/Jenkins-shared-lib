@@ -71,41 +71,44 @@ def call(Map config = [:]) {
             }
 
             stage('Build Services') {
-                steps {
-                    script {
-                        def builds = [:]
+    steps {
+        script {
+            def builds = [:]
 
-                        for (svc in SERVICES) {
-                            builds[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    sh '/opt/maven/bin/mvn clean package'
-                                }
-                            }
-                        }
-
-                        parallel builds
+            for (svc in SERVICES) {
+                builds[svc] = {
+                    dir("${SERVICES_DIR}/${svc}") {
+                        sh '''
+                        mkdir -p target/classes
+                        /opt/maven/bin/mvn clean package -DskipTests
+                        '''
                     }
                 }
             }
+
+            parallel builds
+        }
+    }
+}
 
             stage('Unit Tests') {
-                steps {
-                    script {
-                        def tests = [:]
+    steps {
+        script {
+            def tests = [:]
 
-                        for (svc in SERVICES) {
-                            tests[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    sh '/opt/maven/bin/mvn test'
-                                    junit 'target/surefire-reports/*.xml'
-                                }
-                            }
-                        }
-
-                        parallel tests
+            for (svc in SERVICES) {
+                tests[svc] = {
+                    dir("${SERVICES_DIR}/${svc}") {
+                        sh '/opt/maven/bin/mvn test'
+                        junit 'target/surefire-reports/*.xml'
                     }
                 }
             }
+
+            parallel tests
+        }
+    }
+}
 
             stage('SonarQube Analysis') {
                 steps {
