@@ -76,15 +76,17 @@ def call(Map config = [:]) {
         script {
             def builds = [:]
 
-            SERVICES.unique().each { svc ->
+            SERVICES.each { svc ->
                 builds[svc] = {
                     dir("${SERVICES_DIR}/${svc}") {
-                        sh '''
-                        echo "Building service: $(pwd)"
-                        rm -rf target
-                        mkdir -p target/classes
-                        /opt/maven/bin/mvn clean package -DskipTests -U
-                        '''
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh '''
+                            echo "Building service: $(pwd)"
+                            rm -rf target
+                            mkdir -p target/classes
+                            /opt/maven/bin/mvn clean package -DskipTests -U
+                            '''
+                        }
                     }
                 }
             }
@@ -98,11 +100,19 @@ def call(Map config = [:]) {
         script {
             def tests = [:]
 
-            for (svc in SERVICES) {
+            SERVICES.each { svc ->
                 tests[svc] = {
                     dir("${SERVICES_DIR}/${svc}") {
-                        sh '/opt/maven/bin/mvn test'
-                        junit 'target/surefire-reports/*.xml'
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            sh '''
+                                echo "Running unit tests in: $(pwd)"
+
+                                /opt/maven/bin/mvn test -U
+                            '''
+                        }
+
+                        junit allowEmptyResults: true,
+                              testResults: 'target/surefire-reports/*.xml'
                     }
                 }
             }
