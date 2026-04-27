@@ -31,9 +31,9 @@ def call(Map config = [:]) {
     }
 
     tools {
-        jdk 'jdk17'
-        maven 'maven-3.9.6'
-    }
+            maven 'maven-3.9.6'
+            jdk 'openjdk-17'
+        }
 
     stages {
 
