@@ -7,10 +7,11 @@ def call(Map config = [:]) {
     pipeline {
         agent { label 'jenkins-slave' }
 
-        tools {
-            maven 'maven-3.9.6'
-            jdk 'openjdk-17'
-        }
+       tools {
+    maven 'maven-3.9.6'
+    jdk 'openjdk-17'
+    nodejs 'nodejs-20'
+}
 
         parameters {
             string(
@@ -94,14 +95,14 @@ drug-catalog-service''',
                                                 mkdir -p target/classes
                                                 /opt/maven/bin/mvn clean package -DskipTests -U
 
-                                            elif [ -f package.json ]; then
+                                           elif [ -f package.json ]; then
                                                 echo "Node.js project detected"
-                                                npm ci
-                                                npm run build
-
-                                            else
-                                                echo "Unknown project type. Skipping build."
-                                            fi
+                                                if command -v npm >/dev/null 2>&1; then
+                                                    npm ci
+                                                    npm run build
+                                                else
+                                                echo "npm not installed, skipping build"
+                                                fi
                                         '''
                                     }
                                 }
@@ -135,15 +136,14 @@ drug-catalog-service''',
                                                     echo "H2 dependency missing, skipping Spring Boot tests temporarily"
                                                     /opt/maven/bin/mvn test -DskipTests
                                                 fi
-
-                                            elif [ -f package.json ]; then
+                                                elif [ -f package.json ]; then
                                                 echo "Node.js project detected"
-                                                npm ci
-                                                npm test -- --watchAll=false || true
-
-                                            else
-                                                echo "Unknown project type. Skipping tests."
-                                            fi
+                                                if command -v npm >/dev/null 2>&1; then
+                                                    npm ci
+                                                    npm test -- --watchAll=false || true
+                                                    else
+                                                        echo "npm not installed, skipping tests"
+                                                fi                                           
                                         '''
                                     }
 
