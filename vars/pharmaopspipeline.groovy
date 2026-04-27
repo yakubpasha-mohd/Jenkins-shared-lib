@@ -51,53 +51,38 @@ def call(Map config = [:]) {
                 }
             }
 
-            stage('Detect Services') {
-                steps {
-                    script {
-                        if (params.SERVICE_NAME != "all") {
-                            SERVICES = [params.SERVICE_NAME]
-                        } else {
-                            SERVICES = sh(
-                                script: """
-                                find ${SERVICES_DIR} -maxdepth 1 -mindepth 1 -type d | xargs -n 1 basename
-                                """,
-                                returnStdout: true
-                            ).trim().split('\n')
-                        }
-
-                        echo "Services to process: ${SERVICES.join(', ')}"
-                    }
-                }
+           stage('Detect Services') {
+    steps {
+        script {
+            if (params.SERVICE_NAME != "all") {
+                SERVICES = [params.SERVICE_NAME]
+            } else {
+                SERVICES = sh(
+                    script: """
+                    find ${SERVICES_DIR} -maxdepth 1 -mindepth 1 -type d | xargs -n 1 basename
+                    """,
+                    returnStdout: true
+                ).trim().split('\n').unique()
             }
+
+            echo "Services to process: ${SERVICES.join(', ')}"
+        }
+    }
+}
 
            stage('Build Services') {
     steps {
         script {
             def builds = [:]
 
-            for (svc in SERVICES) {
+            SERVICES.unique().each { svc ->
                 builds[svc] = {
                     dir("${SERVICES_DIR}/${svc}") {
                         sh '''
-                            echo "Building service: $(pwd)"
-
-                            # Check resource file
-                            if [ -f src/main/resources/application.yml ]; then
-                                echo "application.yml found"
-                                ls -l src/main/resources/application.yml
-                            fi
-
-                            # Full cleanup
-                            rm -rf target
-
-                            # Recreate folders
-                            mkdir -p target/classes
-
-                            # Build without tests
-                            /opt/maven/bin/mvn clean package -DskipTests -U
-
-                            # Verify generated jar
-                            ls -lh target/*.jar || true
+                        echo "Building service: $(pwd)"
+                        rm -rf target
+                        mkdir -p target/classes
+                        /opt/maven/bin/mvn clean package -DskipTests -U
                         '''
                     }
                 }
@@ -107,7 +92,6 @@ def call(Map config = [:]) {
         }
     }
 }
-
            stage('Unit Tests') {
     steps {
         script {
