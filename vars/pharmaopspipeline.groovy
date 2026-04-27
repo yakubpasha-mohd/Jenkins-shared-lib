@@ -78,7 +78,7 @@ def call(Map config = [:]) {
                         for (svc in SERVICES) {
                             builds[svc] = {
                                 dir("${SERVICES_DIR}/${svc}") {
-                                    sh 'mvn clean package'
+                                    sh '/opt/maven/bin/mvn clean package'
                                 }
                             }
                         }
@@ -96,7 +96,7 @@ def call(Map config = [:]) {
                         for (svc in SERVICES) {
                             tests[svc] = {
                                 dir("${SERVICES_DIR}/${svc}") {
-                                    sh 'mvn test'
+                                    sh '/opt/maven/bin/mvn test'
                                     junit 'target/surefire-reports/*.xml'
                                 }
                             }
