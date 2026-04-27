@@ -5,227 +5,160 @@ def call(Map config = [:]) {
     def repoUrl    = config.repoUrl ?: "https://github.com/your-org/pharmaops-v1.git"
 
     pipeline {
-        agent { label 'jenkins-slave' }
+     agent { label 'jenkins-slave' }
 
-        tools {
-            maven 'maven-3.9.6'
-            jdk 'openjdk-17'
+    parameters {
+        choice(
+            name: 'ENV',
+            choices: ['dev', 'test'],
+            description: 'Select deployment environment'
+        )
+
+        choice(
+            name: 'SERVICE',
+            choices: ['simple-java-app', 'payment-service', 'user-service'],
+            description: 'Select service to deploy'
+        )
+    }
+
+    environment {
+        APP_NAME   = "${params.SERVICE}"
+        IMAGE_NAME = "myptech08/${params.SERVICE}"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+
+        SONARQUBE_SERVER      = "SonarQube"
+        DOCKER_CREDENTIALS_ID = "dockerhub-creds"
+    }
+
+    tools {
+        jdk 'jdk17'
+        maven 'maven-3.9.6'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/yakubpasha-mohd/simple-java-maven-app.git'
+            }
         }
 
-        parameters {
-            string(name: 'BRANCH',
-                   defaultValue: 'main',
-                   description: 'Git Branch')
-
-            choice(name: 'ENV',
-                   choices: ['dev', 'qa', 'prod'],
-                   description: 'Deployment Environment')
+        stage('Build') {
+            steps {
+                sh '''
+                    echo "Building ${APP_NAME}"
+                    mvn clean package
+                '''
+            }
         }
 
-        environment {
-            APP_NAME    = "${appName}"
-            DOCKER_REPO = "${dockerRepo}"
-            REPO_URL    = "${repoUrl}"
-            IMAGE_TAG   = "${BUILD_NUMBER}"
-            SERVICES_DIR = "services"
-        }
-
-        stages {
-
-            stage('Checkout') {
-                steps {
-                    git branch: params.BRANCH, url: env.REPO_URL
-                }
-            }
-
-            stage('Detect Services') {
-                steps {
-                    script {
-                        SERVICES = sh(
-                            script: "find ${SERVICES_DIR} -maxdepth 1 -mindepth 1 -type d | xargs -n 1 basename",
-                            returnStdout: true
-                        ).trim().split('\n')
-
-                        echo "Detected services: ${SERVICES.join(', ')}"
-                    }
-                }
-            }
-
-            stage('Build Services') {
-                steps {
-                    script {
-                        def builds = [:]
-
-                        for (svc in SERVICES) {
-                            builds[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    sh 'mvn clean package'
-                                }
-                            }
-                        }
-
-                        parallel builds
-                    }
-                }
-            }
-
-            stage('Unit Tests') {
-                steps {
-                    script {
-                        def tests = [:]
-
-                        for (svc in SERVICES) {
-                            tests[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    sh 'mvn test'
-                                    junit 'target/surefire-reports/*.xml'
-                                }
-                            }
-                        }
-
-                        parallel tests
-                    }
-                }
-            }
-
-            stage('SonarQube Analysis') {
-                steps {
-                    script {
-                        def scans = [:]
-                        def scannerHome = tool 'sonar-scanner'
-
-                        for (svc in SERVICES) {
-                            scans[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    withSonarQubeEnv('SonarQube') {
-                                        sh """
-                                        ${scannerHome}/bin/sonar-scanner \
-                                        -Dsonar.projectKey=${svc} \
-                                        -Dsonar.projectName=${svc} \
-                                        -Dsonar.sources=. \
-                                        -Dsonar.java.binaries=target/classes
-                                        """
-                                    }
-                                }
-                            }
-                        }
-
-                        parallel scans
-                    }
-                }
-            }
-
-            stage('Quality Gate') {
-                steps {
-                    timeout(time: 15, unit: 'MINUTES') {
-                        waitForQualityGate abortPipeline: true
-                    }
-                }
-            }
-
-            stage('Archive Artifacts') {
-                steps {
-                    archiveArtifacts artifacts: '**/target/*.jar', fingerprint: true
-                }
-            }
-
-            stage('Docker Build') {
-                steps {
-                    script {
-                        def builds = [:]
-
-                        for (svc in SERVICES) {
-                            builds[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    sh """
-                                    docker build -t ${DOCKER_REPO}/${svc}:${IMAGE_TAG} .
-                                    """
-                                }
-                            }
-                        }
-
-                        parallel builds
-                    }
-                }
-            }
-
-            stage('Trivy Scan') {
-                steps {
-                    script {
-                        def scans = [:]
-
-                        for (svc in SERVICES) {
-                            scans[svc] = {
-                                sh """
-                                trivy image \
-                                --format table \
-                                --output ${svc}-trivy-report.txt \
-                                ${DOCKER_REPO}/${svc}:${IMAGE_TAG}
-                                """
-                                archiveArtifacts artifacts: "${svc}-trivy-report.txt"
-                            }
-                        }
-
-                        parallel scans
-                    }
-                }
-            }
-
-            stage('Docker Push') {
-                steps {
-                    script {
-                        withCredentials([usernamePassword(
-                            credentialsId: 'docker-cred',
-                            usernameVariable: 'DOCKER_USER',
-                            passwordVariable: 'DOCKER_PASS'
-                        )]) {
-
-                            sh '''
-                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            '''
-
-                            def pushes = [:]
-
-                            for (svc in SERVICES) {
-                                pushes[svc] = {
-                                    sh """
-                                    docker push ${DOCKER_REPO}/${svc}:${IMAGE_TAG}
-                                    """
-                                }
-                            }
-
-                            parallel pushes
-                        }
-                    }
-                }
-            }
-
-            stage('Deploy') {
-                steps {
-                    script {
-                        if (params.ENV == 'dev') {
-                            sh 'docker-compose up -d'
-                        } else if (params.ENV == 'qa') {
-                            sh 'docker-compose -f docker-compose.qa.yml up -d'
-                        } else if (params.ENV == 'prod') {
-                            input 'Approve Production Deployment?'
-                            sh 'docker-compose -f docker-compose.prod.yml up -d'
-                        }
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar-scanner'
+                    withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=${APP_NAME} \
+                              -Dsonar.projectName=${APP_NAME} \
+                              -Dsonar.sources=. \
+                              -Dsonar.java.binaries=target/classes
+                        """
                     }
                 }
             }
         }
 
-        post {
-            success {
-                echo "Pipeline Success ✅ (${params.ENV})"
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
-            failure {
-                echo "Pipeline Failed ❌ (${params.ENV})"
+        }
+
+        stage('Archive Artifacts') {
+            steps {
+                archiveArtifacts artifacts: 'target/*.jar'
             }
-            always {
-                cleanWs()
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh """
+                    echo "Building Docker image..."
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${IMAGE_NAME}:latest
+                """
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                sh """
+                    echo "Running Trivy scan..."
+                    docker run --rm \
+                      -v /var/run/docker.sock:/var/run/docker.sock \
+                      -v \$WORKSPACE:/workspace \
+                      aquasec/trivy:latest image \
+                      --format table \
+                      --output /workspace/trivy-report.txt \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
+                """
+                archiveArtifacts artifacts: 'trivy-report.txt'
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                script {
+                    docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
+                        sh """
+                            echo "Pushing image..."
+                            docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                            docker push ${IMAGE_NAME}:latest
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh """
+                    echo "Deploying ${APP_NAME} to ${params.ENV}"
+
+                    if [ "${params.ENV}" = "dev" ]; then
+                        docker rm -f ${APP_NAME}-dev || true
+                        docker run -d \
+                          --name ${APP_NAME}-dev \
+                          -p 8081:8080 \
+                          -e SPRING_PROFILES_ACTIVE=dev \
+                          ${IMAGE_NAME}:${IMAGE_TAG}
+                    else
+                        docker rm -f ${APP_NAME}-test || true
+                        docker run -d \
+                          --name ${APP_NAME}-test \
+                          -p 8082:8080 \
+                          -e SPRING_PROFILES_ACTIVE=test \
+                          ${IMAGE_NAME}:${IMAGE_TAG}
+                    fi
+                """
             }
         }
     }
+
+    post {
+        success {
+            echo "Pipeline completed successfully ✅ (${params.SERVICE} -> ${params.ENV})"
+        }
+        failure {
+            echo "Pipeline Failed ❌ (${params.SERVICE} -> ${params.ENV})"
+        }
+        always {
+            cleanWs()
+        }
+    }
+}
 }
