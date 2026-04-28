@@ -77,7 +77,7 @@ drug-catalog-service''',
                 }
             }
 
-           stage('Build Services') {
+          stage('Build Services') {
     steps {
         script {
             def builds = [:]
@@ -96,20 +96,24 @@ drug-catalog-service''',
                                     /opt/maven/bin/mvn clean package -DskipTests -U
 
                                 elif [ -f package.json ]; then
-    echo "Node.js project detected"
+                                    echo "Node.js project detected"
 
-    if command -v npm >/dev/null 2>&1; then
-        npm ci
+                                    if command -v npm >/dev/null 2>&1; then
+                                        npm ci
 
-        if npm run | grep -q " build"; then
-            echo "Build script found"
-            npm run build
-        else
-            echo "No build script found, skipping build"
-        fi
-    else
-        echo "npm not installed, skipping build"
-    fi
+                                        if npm run | grep -q " build"; then
+                                            echo "Build script found"
+                                            npm run build
+                                        else
+                                            echo "No build script found, skipping build"
+                                        fi
+                                    else
+                                        echo "npm not installed, skipping build"
+                                    fi
+
+                                else
+                                    echo "Unknown project type. Skipping build."
+                                fi
                             '''
                         }
                     }
@@ -144,21 +148,25 @@ stage('Unit Tests') {
                                         /opt/maven/bin/mvn test -DskipTests
                                     fi
 
-                               elif [ -f package.json ]; then
-    echo "Node.js project detected"
+                                elif [ -f package.json ]; then
+                                    echo "Node.js project detected"
 
-    if command -v npm >/dev/null 2>&1; then
-        npm ci
+                                    if command -v npm >/dev/null 2>&1; then
+                                        npm ci
 
-        if npm run | grep -q " test"; then
-            echo "Test script found"
-            npm test -- --watchAll=false || true
-        else
-            echo "No test script found, skipping tests"
-        fi
-    else
-        echo "npm not installed, skipping tests"
-    fi
+                                        if npm run | grep -q " test"; then
+                                            echo "Test script found"
+                                            npm test -- --watchAll=false || true
+                                        else
+                                            echo "No test script found, skipping tests"
+                                        fi
+                                    else
+                                        echo "npm not installed, skipping tests"
+                                    fi
+
+                                else
+                                    echo "Unknown project type. Skipping tests."
+                                fi
                             '''
                         }
 
