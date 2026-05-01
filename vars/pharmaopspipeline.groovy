@@ -148,21 +148,21 @@ stage('Unit Tests') {
                                         /opt/maven/bin/mvn test -DskipTests
                                     fi
 
-                                elif [ -f package.json ]; then
-                                    echo "Node.js project detected"
+                               elif [ -f package.json ]; then
+    echo "Node.js project detected"
 
-                                    if command -v npm >/dev/null 2>&1; then
-                                        npm ci
+    if command -v npm >/dev/null 2>&1; then
+        npm ci
 
-                                        if npm run | grep -q " test"; then
-                                            echo "Test script found"
-                                            npm test -- --watchAll=false || true
-                                        else
-                                            echo "No test script found, skipping tests"
-                                        fi
-                                    else
-                                        echo "npm not installed, skipping tests"
-                                    fi
+        if npm run | grep -q " test"; then
+            echo "Test script found"
+            npm test -- --watchAll=false --runInBand --silent || true
+        else
+            echo "No test script found, skipping tests"
+        fi
+    else
+        echo "npm not installed, skipping tests"
+    fi
 
                                 else
                                     echo "Unknown project type. Skipping tests."
