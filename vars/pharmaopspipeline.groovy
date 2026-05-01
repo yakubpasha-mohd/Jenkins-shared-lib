@@ -144,25 +144,25 @@ stage('Unit Tests') {
                                         echo "H2 dependency found, running tests"
                                         /opt/maven/bin/mvn test -U
                                     else
-                                        echo "H2 dependency missing, skipping Spring Boot tests temporarily"
+                                        echo "H2 dependency missing, skipping tests"
                                         /opt/maven/bin/mvn test -DskipTests
                                     fi
 
-                               elif [ -f package.json ]; then
-    echo "Node.js project detected"
+                                elif [ -f package.json ]; then
+                                    echo "Node.js project detected"
 
-    if command -v npm >/dev/null 2>&1; then
-        npm ci
+                                    if command -v npm >/dev/null 2>&1; then
+                                        npm ci
 
-        if npm run | grep -q " test"; then
-            echo "Test script found"
-            npm test -- --watchAll=false --runInBand --silent || true
-        else
-            echo "No test script found, skipping tests"
-        fi
-    else
-        echo "npm not installed, skipping tests"
-    fi
+                                        if npm run | grep -q " test"; then
+                                            echo "Running Node tests"
+                                            npm test -- --watchAll=false --runInBand --silent || true
+                                        else
+                                            echo "No test script found, skipping tests"
+                                        fi
+                                    else
+                                        echo "npm not installed, skipping tests"
+                                    fi
 
                                 else
                                     echo "Unknown project type. Skipping tests."
@@ -171,13 +171,14 @@ stage('Unit Tests') {
                         }
 
                         script {
-                            if (fileExists('target/surefire-reports')) {
+                            // ✅ FIX: Only run JUnit for Java projects
+                            if (fileExists('pom.xml') && fileExists('target/surefire-reports')) {
                                 junit(
                                     allowEmptyResults: true,
                                     testResults: 'target/surefire-reports/*.xml'
                                 )
                             } else {
-                                echo "No JUnit reports found for ${svc}"
+                                echo "Skipping JUnit for ${svc}"
                             }
                         }
                     }
