@@ -47,6 +47,7 @@ drug-catalog-service''',
             REPO_URL     = "${repoUrl}"
             IMAGE_TAG    = "${BUILD_NUMBER}"
             SERVICES_DIR = "services"
+            DOCKER_USER = 'myptech'
         }
 
         stages {
@@ -196,7 +197,7 @@ stage('Unit Tests') {
                 }
             }
 
-            stage('Docker Build') {
+           stage('Docker Build') {
     steps {
         script {
             def builds = [:]
@@ -237,7 +238,7 @@ stage('Unit Tests') {
                 SERVICES.each { svc ->
                     pushes[svc] = {
                         sh """
-                            echo "Pushing Docker image for ${svc}"
+                            echo "Pushing ${svc}"
                             docker push ${DOCKER_USER}/${svc}:${IMAGE_TAG}
                         """
                     }
