@@ -156,7 +156,7 @@ stage('Unit Tests') {
 
                                         if npm run | grep -q " test"; then
                                             echo "Running Node tests"
-                                            npm test -- --watchAll=false --runInBand --silent || true
+                                            npm test -- --watchAll=false --runInBand --silent --forceExit || true
                                         else
                                             echo "No test script found, skipping tests"
                                         fi
