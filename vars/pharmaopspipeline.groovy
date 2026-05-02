@@ -2,13 +2,31 @@ def call(Map config = [:]) {
 
     def appName    = config.appName ?: "pharmaops"
     def repoUrl    = config.repoUrl ?: "https://github.com/yakubpasha-mohd/pharmaops.git"
-      properties([
-        parameters([
-            string(name: 'BRANCH', defaultValue: 'main', description: 'Git Branch'),
-            choice(name: 'SERVICE_NAME', choices: ['all','api-gateway','auth-service'], description: 'Service'),
-            choice(name: 'ENV', choices: ['dev','qa','prod'], description: 'Env')
-        ])
+    properties([
+    parameters([
+        string(name: 'BRANCH', defaultValue: 'main', description: 'Git Branch'),
+        choice(
+            name: 'SERVICE_NAME',
+            choices: [
+                'all',
+                'api-gateway',
+                'auth-service',
+                'user-service',
+                'product-service',
+                'order-service',
+                'pharma-ui',
+                'notification-service',
+                'drug-catalog-service'
+            ],
+            description: 'Select service'
+        ),
+        choice(
+            name: 'ENV',
+            choices: ['dev','qa','prod'],
+            description: 'Environment'
+        )
     ])
+])
     pipeline {
         agent { label 'jenkins-slave' }
 
