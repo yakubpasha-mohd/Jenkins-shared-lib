@@ -251,23 +251,21 @@ stage('Unit Tests') {
 }
 
             stage('Deploy') {
-                steps {
-                    script {
-                        SERVICES.each { svc ->
-                            if (params.ENV == 'dev') {
-                                sh "docker-compose up -d ${svc}"
-                            } else if (params.ENV == 'qa') {
-                                sh "docker-compose -f docker-compose.qa.yml up -d ${svc}"
-                            } else if (params.ENV == 'prod') {
-                                input "Approve Production Deployment for ${svc}?"
-                                sh "docker-compose -f docker-compose.prod.yml up -d ${svc}"
-                            }
-                        }
-                    }
+    steps {
+        script {
+            SERVICES.each { svc ->
+                if (params.ENV == 'dev') {
+                    sh "docker compose up -d ${svc}"
+                } else if (params.ENV == 'qa') {
+                    sh "docker compose -f docker-compose.qa.yml up -d ${svc}"
+                } else if (params.ENV == 'prod') {
+                    input "Approve Production Deployment for ${svc}?"
+                    sh "docker compose -f docker-compose.prod.yml up -d ${svc}"
                 }
             }
         }
-
+    }
+}
         post {
             success {
                 echo "Pipeline Success ✅ (${params.ENV})"
