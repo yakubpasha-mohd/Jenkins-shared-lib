@@ -197,56 +197,57 @@ stage('Unit Tests') {
             }
 
             stage('Docker Build') {
-                steps {
-                    script {
-                        def builds = [:]
+    steps {
+        script {
+            def builds = [:]
 
-                        SERVICES.each { svc ->
-                            builds[svc] = {
-                                dir("${SERVICES_DIR}/${svc}") {
-                                    sh """
-                                        docker build -t ${DOCKER_REPO}/${svc}:${IMAGE_TAG} .
-                                    """
-                                }
-                            }
-                        }
-
-                        parallel builds
+            SERVICES.each { svc ->
+                builds[svc] = {
+                    dir("${SERVICES_DIR}/${svc}") {
+                        sh """
+                            echo "Building Docker image for ${svc}"
+                            docker build -t ${DOCKER_USER}/${svc}:${IMAGE_TAG} .
+                        """
                     }
                 }
             }
 
-          
-            stage('Docker Push') {
-                steps {
-                    script {
-                        withCredentials([
-                            usernamePassword(
-                                credentialsId: 'docker-cred',
-                                usernameVariable: 'DOCKER_USER',
-                                passwordVariable: 'DOCKER_PASS'
-                            )
-                        ]) {
+            parallel builds
+        }
+    }
+}
 
-                            sh '''
-                                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                            '''
+          stage('Docker Push') {
+    steps {
+        script {
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'docker-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )
+            ]) {
 
-                            def pushes = [:]
+                sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                '''
 
-                            SERVICES.each { svc ->
-                                pushes[svc] = {
-                                    sh """
-                                        docker push ${DOCKER_REPO}/${svc}:${IMAGE_TAG}
-                                    """
-                                }
-                            }
+                def pushes = [:]
 
-                            parallel pushes
-                        }
+                SERVICES.each { svc ->
+                    pushes[svc] = {
+                        sh """
+                            echo "Pushing Docker image for ${svc}"
+                            docker push ${DOCKER_USER}/${svc}:${IMAGE_TAG}
+                        """
                     }
                 }
+
+                parallel pushes
             }
+        }
+    }
+}
 
             stage('Deploy') {
                 steps {
